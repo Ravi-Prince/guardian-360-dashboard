@@ -54,19 +54,38 @@ def get_supabase():
 
 
 # ==================================================
-# EMAIL FUNCTION
+# EMAIL RECIPIENTS
+# ==================================================
+
+def get_email_recipients():
+    return [
+        email.strip()
+        for email in st.secrets["ALERT_EMAIL"].split(",")
+        if email.strip()
+    ]
+
+
+# ==================================================
+# EMAIL NOTIFICATION
 # ==================================================
 
 def send_email_alert(device_id, recorded_at, leak_status, flame_detected):
+
+    recipients = get_email_recipients()
+
+    if not recipients:
+        raise ValueError("No email recipients configured.")
 
     msg = EmailMessage()
 
     msg["Subject"] = "LPG SAFETY ALERT - Guardian 360"
     msg["From"] = st.secrets["GMAIL_ADDRESS"]
-    msg["To"] = st.secrets["ALERT_EMAIL"]
+    msg["To"] = ", ".join(recipients)
 
     msg.set_content(f"""
 GUARDIAN 360 - SAFETY NOTIFICATION
+
+An abnormal safety condition has been reported.
 
 Device ID: {device_id}
 Recorded At: {recorded_at}
@@ -85,7 +104,10 @@ This is an automated prototype notification.
             st.secrets["GMAIL_APP_PASSWORD"]
         )
 
-        smtp.send_message(msg)
+        smtp.send_message(
+            msg,
+            to_addrs=recipients
+        )
 
 
 # ==================================================
@@ -95,12 +117,11 @@ This is an automated prototype notification.
 st.sidebar.header("Guardian 360 Controls")
 
 if st.sidebar.button("🔄 Refresh Readings"):
-    st.cache_data.clear()
     st.rerun()
 
 
 # ==================================================
-# EMAIL TEST BUTTON
+# TEST EMAIL
 # ==================================================
 
 st.sidebar.divider()
@@ -109,6 +130,7 @@ st.sidebar.subheader("📧 Email Testing")
 if st.sidebar.button("Send Test Email"):
 
     try:
+
         send_email_alert(
             "Guardian-360-Test",
             "Manual Test",
@@ -116,9 +138,12 @@ if st.sidebar.button("Send Test Email"):
             False
         )
 
-        st.sidebar.success("Test email sent successfully!")
+        st.sidebar.success(
+            "Test email sent to both recipients!"
+        )
 
     except Exception as e:
+
         st.sidebar.error("Email sending failed.")
         st.sidebar.caption(str(e))
 
@@ -150,7 +175,7 @@ except Exception as e:
 
 
 # ==================================================
-# DISPLAY DASHBOARD
+# ALERT DETECTION
 # ==================================================
 
 if readings:
@@ -166,10 +191,6 @@ if readings:
     st.info(
         f"Latest record: {recorded_at} | Device: {device_id}"
     )
-
-    # ----------------------------------------------
-    # SAFETY ALERT DETECTION
-    # ----------------------------------------------
 
     leak_detected = str(leak).strip().lower() in [
         "leak",
@@ -212,7 +233,9 @@ if readings:
 
                 st.session_state.last_email_alert_id = alert_id
 
-                st.success("Safety notification email sent.")
+                st.success(
+                    "Safety email sent to both recipients."
+                )
 
             except Exception as e:
 
@@ -221,11 +244,14 @@ if readings:
 
     else:
 
-        st.success("✅ No safety alert in the latest database reading.")
+        st.success(
+            "✅ No safety alert in the latest database reading."
+        )
 
-    # ----------------------------------------------
+
+    # ==================================================
     # SENSOR VALUES
-    # ----------------------------------------------
+    # ==================================================
 
     st.subheader("Latest Recorded Readings")
 
@@ -256,18 +282,16 @@ if readings:
         f"{pct} %" if pct is not None else "Waiting"
     )
 
-    # ----------------------------------------------
+
+    # ==================================================
     # SAFETY STATUS
-    # ----------------------------------------------
+    # ==================================================
 
     st.subheader("Safety Status")
 
     s1, s2, s3 = st.columns(3)
 
-    s1.metric(
-        "Leak Status",
-        str(leak)
-    )
+    s1.metric("Leak Status", str(leak))
 
     s2.metric(
         "Valve Confirmed",
@@ -279,9 +303,10 @@ if readings:
         str(latest.get("power_demo_on", "Unknown"))
     )
 
-    # ----------------------------------------------
+
+    # ==================================================
     # SENSOR HISTORY
-    # ----------------------------------------------
+    # ==================================================
 
     st.subheader("Sensor History")
 
@@ -334,9 +359,9 @@ st.caption(
 st.divider()
 
 st.caption("""
-Guardian 360 | LPG Monitoring and Leak Prevention Prototype
+Guardian 360 | LPG Monitoring and Leak Prevention Prototype.
 
-This dashboard is a prototype and is not a certified LPG safety system.
-Never rely on email notifications or dashboard readings as the sole
-means of detecting leaks or isolating gas.
+This dashboard is not a certified LPG safety system.
+Never rely on email notifications or dashboard readings as
+the sole means of detecting leaks or isolating gas.
 """)
