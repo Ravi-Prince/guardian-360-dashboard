@@ -47,6 +47,24 @@ def get_supabase():
 # ---------------- EMAIL ALERT ----------------
 
 def send_email_alert(device_id, recorded_at, leak_status, flame_detected):
+    
+# ---------------- TEST EMAIL ----------------
+
+st.sidebar.subheader("Email Testing")
+
+if st.sidebar.button("📧 Send Test Email"):
+    try:
+        send_email_alert(
+            "Guardian-360-Test",
+            "Manual Test",
+            "TEST ALERT",
+            False
+        )
+        st.sidebar.success("Test email sent! Check your inbox.")
+    except Exception as e:
+        st.sidebar.error("Email failed.")
+        st.sidebar.caption(str(e))
+
     msg = EmailMessage()
 
     msg["Subject"] = "🚨 LPG SAFETY ALERT - Guardian 360"
